@@ -56,37 +56,29 @@ COMMUNITIES = {
     'Galloway': {t: 'America Drywall' for t in TASKS},
     'Huntersville Town Center': {t: 'America Drywall' for t in TASKS},
     'Claremont': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers',
-        'Tape':'Juan Trejo','Bed':'Juan Trejo',
-        'Skim':'Juan Trejo','Sand':'Juan Trejo'
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
+        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
+        'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
     'Context': {t: 'America Drywall' for t in TASKS},
     'Greenway Overlook': {t: 'America Drywall' for t in TASKS},
     'Camden': {t: 'America Drywall' for t in TASKS},
     'Olmstead': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers',
-        'Tape':'Juan Trejo','Bed':'Juan Trejo',
-        'Skim':'Juan Trejo','Sand':'Juan Trejo'
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
+        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
+        'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
     'Maxwell': {t: 'America Drywall' for t in TASKS},
 }
 DUR = {'Hang':1,'Scrap':1,'Sand':1,'Tape':2,'Bed':2,'Skim':2}
 POINTUP_SUBS = {
-    'Galloway':'Luis A. Lopez',
-    'Huntersville Town Center':'Luis A. Lopez',
-    'Claremont':'Edwin',
-    'Context':'Edwin',
-    'Greenway Overlook':'Edwin',
-    'Camden':'Luis A. Lopez',
-    'Olmstead':'Luis A. Lopez',
-    'Maxwell':'Luis A. Lopez'
+    'Galloway':'Luis A. Lopez','Huntersville Town Center':'Luis A. Lopez',
+    'Claremont':'Edwin','Context':'Edwin','Greenway Overlook':'Edwin',
+    'Camden':'Luis A. Lopez','Olmstead':'Luis A. Lopez','Maxwell':'Luis A. Lopez'
 }
 PAINT_SUBS = [
-    'GP Painting Services',
-    'Jorge Gomez',
-    'Christian Painting',
-    'Carlos Gabriel',
-    'Juan Ulloa'
+    'GP Painting Services','Jorge Gomez',
+    'Christian Painting','Carlos Gabriel','Juan Ulloa'
 ]
 
 def generate_schedule(community, start_date):
@@ -110,21 +102,21 @@ def classify_note_with_llm(lot, community, text):
         "parameters": {
             "type": "object",
             "properties": {
-                "category": {"type": "string","enum":["EPO","MonitorHang","FinalPaint","Other"]},
-                "dueDate":  {"type":"string","format":"date-time"},
-                "priority": {"type":"string","enum":["High","Medium","Low"]},
-                "emailDraft":{"type":"string"}
+                "category":   {"type": "string","enum":["EPO","MonitorHang","FinalPaint","Other"]},
+                "dueDate":    {"type": "string","format":"date-time"},
+                "priority":   {"type": "string","enum":["High","Medium","Low"]},
+                "emailDraft": {"type": "string"}
             },
             "required": ["category","emailDraft"]
         }
     }]
     messages = [
-        {"role":"system","content":"You’re an assistant that turns construction walk-through notes into action items."},
+        {"role":"system","content":"You’re an assistant that turns walk-through notes into actionable tasks."},
         {"role":"user","content":f"Lot {lot} in {community}: {text}"}
     ]
-    # Use a model everyone has access to
+    # switch to the supported gpt-3.5-turbo model
     res = client.chat.completions.create(
-        model="gpt-3.5-turbo-0613",
+        model="gpt-3.5-turbo",
         messages=messages,
         functions=functions,
         function_call={"name":"classifyNote"}
@@ -144,29 +136,26 @@ def classify_note_with_llm(lot, community, text):
 # --- Sidebar Navigation & Debug ---
 st.sidebar.markdown("---")
 mode = st.sidebar.selectbox("Choose demo mode", [
-    "Schedule & Order Mud",
-    "EPO & Tracker",
-    "QC Scheduling",
-    "Homeowner Scheduling",
-    "Note Taking"
+    "Schedule & Order Mud","EPO & Tracker","QC Scheduling",
+    "Homeowner Scheduling","Note Taking"
 ])
 st.sidebar.write(f"🐛 MODE: {mode}")
 
 # --- Schedule & Order Mud ---
 if mode == "Schedule & Order Mud":
-    st.sidebar.write("🐛 BRANCH: Schedule & Order Mud")
+    st.sidebar.write("🐛 BRANCH: Schedule")
     st.header("📆 Schedule Generator & Mud Order")
     with st.form("schedule_form"):
-        lot      = st.text_input("Lot number")
-        community= st.selectbox("Community", list(COMMUNITIES))
-        start    = st.date_input("Start date")
-        generate = st.form_submit_button("Generate Schedule")
-    if generate:
+        lot       = st.text_input("Lot number")
+        community = st.selectbox("Community", list(COMMUNITIES))
+        start     = st.date_input("Start date")
+        go        = st.form_submit_button("Generate Schedule")
+    if go:
         sched = generate_schedule(community, start)
         st.table({
-            'Task': [t for t,_,_ in sched],
-            'Sub':  [s for _,s,_ in sched],
-            'Date': [d.strftime('%m/%d/%Y') for *_,d in sched]
+            'Task':[t for t,_,_ in sched],
+            'Sub': [s for _,s,_ in sched],
+            'Date':[d.strftime('%m/%d/%Y') for *_,d in sched]
         })
         if st.button("Order Mud for Scrap Date"):
             scrap_date = sched[1][2].strftime('%m/%d/%Y')
@@ -174,7 +163,7 @@ if mode == "Schedule & Order Mud":
 
 # --- EPO & Tracker ---
 elif mode == "EPO & Tracker":
-    st.sidebar.write("🐛 BRANCH: EPO & Tracker")
+    st.sidebar.write("🐛 BRANCH: EPO")
     st.header("✉️ EPO Automation & Tracker")
     with st.form("epo_form", clear_on_submit=True):
         lot      = st.text_input("Lot number")
@@ -185,10 +174,8 @@ elif mode == "EPO & Tracker":
         send     = st.form_submit_button("Send EPO")
     if send:
         now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-        entry = {
-            'lot':lot, 'comm':community, 'to':email_to,
-            'amt':amount, 'sent':now, 'replied':False, 'followup':False
-        }
+        entry = {'lot':lot,'comm':community,'to':email_to,
+                 'amt':amount,'sent':now,'replied':False,'followup':False}
         st.session_state.epo_log.append(entry)
         save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
         st.success(f"EPO for Lot {lot} recorded at {now}")
@@ -211,7 +198,7 @@ elif mode == "EPO & Tracker":
 
 # --- QC Scheduling ---
 elif mode == "QC Scheduling":
-    st.sidebar.write("🐛 BRANCH: QC Scheduling")
+    st.sidebar.write("🐛 BRANCH: QC")
     st.header("🔍 QC Scheduling")
     lot        = st.text_input("Lot number", key='qc_lot')
     community  = st.selectbox("Community", list(COMMUNITIES), key='qc_comm')
@@ -230,7 +217,7 @@ elif mode == "QC Scheduling":
 
 # --- Homeowner Scheduling ---
 elif mode == "Homeowner Scheduling":
-    st.sidebar.write("🐛 BRANCH: Homeowner Scheduling")
+    st.sidebar.write("🐛 BRANCH: Homeowner")
     st.header("🏠 Homeowner Scheduling")
     lot        = st.text_input("Lot number", key='ho_lot')
     community  = st.selectbox("Community", list(COMMUNITIES), key='ho_comm')
@@ -257,7 +244,7 @@ elif mode == "Note Taking":
         # auth test
         try:
             client.chat.completions.create(
-                model="gpt-3.5-turbo-0613",
+                model="gpt-3.5-turbo",
                 messages=[{"role":"system","content":"ping"}]
             )
             st.sidebar.success("🛠️ OpenAI auth test: OK")
@@ -272,9 +259,8 @@ elif mode == "Note Taking":
             note_txt = parts[1].strip() if len(parts)>1 else ""
             item = classify_note_with_llm(lot_code, community, note_txt)
             st.session_state.notes.append(item)
-        save_data({'epo_log':st.session_state.epo_log, 'notes':st.session_state.notes})
+        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
     if st.session_state.notes:
-        st.subheader("Action Items")
         st.table(st.session_state.notes)
     else:
         st.info("No notes yet.")
