@@ -5,20 +5,20 @@ import re
 # --- Business logic ---
 TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
 COMMUNITIES = {
-    'Galloway': {t:'America Drywall' for t in TASKS},
-    'Huntersville Town Center': {t:'America Drywall' for t in TASKS},
+    'Galloway': {t: 'America Drywall' for t in TASKS},
+    'Huntersville Town Center': {t: 'America Drywall' for t in TASKS},
     'Claremont': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers','Tape':'Juan Trejo',
-        'Bed':'Juan Trejo','Skim':'Juan Trejo','Sand':'Juan Trejo'
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers', 'Tape': 'Juan Trejo',
+        'Bed': 'Juan Trejo', 'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
-    'Context': {t:'America Drywall' for t in TASKS},
-    'Greenway Overlook': {t:'America Drywall' for t in TASKS},
-    'Camden': {t:'America Drywall' for t in TASKS},
+    'Context': {t: 'America Drywall' for t in TASKS},
+    'Greenway Overlook': {t: 'America Drywall' for t in TASKS},
+    'Camden': {t: 'America Drywall' for t in TASKS},
     'Olmstead': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers','Tape':'Juan Trejo',
-        'Bed':'Juan Trejo','Skim':'Juan Trejo','Sand':'Juan Trejo'
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers', 'Tape': 'Juan Trejo',
+        'Bed': 'Juan Trejo', 'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
-    'Maxwell': {t:'America Drywall' for t in TASKS},
+    'Maxwell': {t: 'America Drywall' for t in TASKS},
 }
 # Phase durations
 DUR = {'Hang':1,'Scrap':1,'Sand':1,'Tape':2,'Bed':2,'Skim':2}
@@ -125,9 +125,9 @@ elif mode == "QC Scheduling":
     stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'task': 'QC Point-Up',           'sub': POINTUP_SUBS.get(comm, '—'), 'date': pu.strftime('%m/%d/%Y')},
-            {'task': 'QC Paint',              'sub': paint_sub,                 'date': paint_date.strftime('%m/%d/%Y')},
-            {'task': 'QC Stain Touch-Up',     'sub': 'Dorby',                    'date': stain_date.strftime('%m/%d/%Y')}
+            {'task': 'QC Point-Up',       'sub': POINTUP_SUBS.get(comm, '—'), 'date': pu.strftime('%m/%d/%Y')},
+            {'task': 'QC Paint',          'sub': paint_sub,                 'date': paint_date.strftime('%m/%d/%Y')},
+            {'task': 'QC Stain Touch-Up', 'sub': 'Dorby',                   'date': stain_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks); st.json({'lot': lot, 'comm': comm, 'qc_tasks': tasks})
 
