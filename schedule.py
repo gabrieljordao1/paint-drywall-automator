@@ -60,7 +60,8 @@ parse_note_fn = {
     }
 }
 
-# App layout\st.set_page_config(page_title="Paint & Drywall Automator Demo")
+# App layout
+st.set_page_config(page_title="Paint & Drywall Automator Demo")
 st.title("🏠 Paint & Drywall Automator Demo")
 mode = st.sidebar.selectbox("Choose demo mode", [
     "Schedule & Order Mud",
@@ -160,4 +161,51 @@ elif mode == "Homeowner Scheduling":
     comm = st.selectbox("Community", list(COMMUNITIES.keys()), key='ho_comm')
     pu = st.date_input("HO Point-Up date", key='ho_pu')
     paint_date = st.date_input("HO Paint date", key='ho_paint_date')
-    paint_sub = st.selectbox("HO Paint Subcontractor", PAINT_SUBS, key='ho_paint')?>
+    paint_sub = st.selectbox("HO Paint Subcontractor", PAINT_SUBS, key='ho_paint_sub')
+    if st.button("Schedule Homeowner Tasks"):
+        tasks = [
+            {'task': 'HO Point-Up', 'sub': POINTUP_SUBS.get(comm, '—'), 'date': pu.strftime('%m/%d/%Y')},
+            {'task': 'HO Paint',    'sub': paint_sub,                     'date': paint_date.strftime('%m/%d/%Y')}
+        ]
+        st.table(tasks); st.json({'lot': lot, 'comm': comm, 'ho_tasks': tasks})
+
+# --- Note Taking ---
+elif mode == "Note Taking":
+    st.header("📝 Note Taking")
+    comm = st.selectbox("Community Context", list(COMMUNITIES.keys()), key='note_comm')
+    audio = st.file_uploader("Upload voice note (wav/m4a)", type=["wav","m4a"])
+    if audio:
+        with st.spinner("Transcribing audio..."):
+            transcript = openai.Audio.transcribe("whisper-1", audio)
+        notes_input = transcript.get('text','')
+        st.write("🗣️ Transcribed:", notes_input)
+    else:
+        notes_input = st.text_area("Or enter notes manually (Lot### - note)")
+    if st.button("Parse Notes"):
+        st.session_state.notes = []
+        for line in notes_input.splitlines():
+            if not line.strip(): continue
+            response = openai.ChatCompletion.create(
+                model="gpt-4-turbo-0613",
+                messages=[{'role':'system','content':f"Community: {comm}"}, {'role':'user','content':line}],
+                functions=[parse_note_fn],
+                function_call={'name':'parse_note'}
+            )
+            args = json.loads(response.choices[0].message.function_call.arguments)
+            st.session_state.notes.append({
+                'Community': comm,
+                'Lot': args.get('lot',''),
+                'Issue': args.get('issue',''),
+                'Action': args.get('action',''),
+                'Details': args.get('details',''),
+                'Follow-Up': args.get('followup','')
+            })
+    if st.session_state.notes:
+        st.subheader("Parsed Notes")
+        st.table(st.session_state.notes)
+    else:
+        st.info("No notes parsed yet.")
+
+# Sidebar
+st.sidebar.markdown("---")
+st.sidebar.write("This is a **demo only**—no actual emails go out.")
