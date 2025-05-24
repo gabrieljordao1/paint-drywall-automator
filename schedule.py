@@ -50,14 +50,13 @@ if 'epo_log' not in st.session_state:
 if 'notes' not in st.session_state:
     st.session_state.notes = []
 
-# App layout
-st.title("🏠 Paint & Drywall Automator Demo")
+# App layout\st.title("🏠 Paint & Drywall Automator Demo")
 mode = st.sidebar.selectbox("Choose demo mode", [
-    "Schedule & Order Mud",  
-    "EPO & Tracker",         
-    "QC Scheduling",         
-    "Homeowner Scheduling",  
-    "Note Taking"            
+    "Schedule & Order Mud",
+    "EPO & Tracker",
+    "QC Scheduling",
+    "Homeowner Scheduling",
+    "Note Taking"
 ])
 
 # --- Schedule & Order Mud ---
@@ -158,8 +157,48 @@ elif mode == "Homeowner Scheduling":
     lot        = st.text_input("Lot number", key='ho_lot')
     comm       = st.selectbox("Community", list(COMMUNITIES.keys()), key='ho_comm')
     pu_date    = st.date_input("HO Point-Up date", key='ho_pu')
-    paint_date = st.date_input("HO Paint date", key='ho_paint_date')
+    paint_date = st.date_input("HO Paint date", key='ho_paint')
     paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_paint_sub')
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {'task': 'HO Point-Up', 'sub': POINTUP_SUBS.get
+            {'task': 'HO Point-Up', 'sub': POINTUP_SUBS.get(comm,'—'), 'date': pu_date.strftime('%m/%d/%Y')},
+            {'task': 'HO Paint',    'sub': paint_sub,                 'date': paint_date.strftime('%m/%d/%Y')}
+        ]
+        st.table(tasks)
+        st.json({'lot': lot, 'community': comm, 'homeowner_tasks': tasks})
+
+# --- Note Taking ---
+elif mode == "Note Taking":
+    st.header("📝 Note Taking")
+    comm = st.selectbox("Community Context", list(COMMUNITIES.keys()), key='note_comm')
+    notes_input = st.text_area("Enter notes (format: Lot### - your note)")
+    if st.button("Parse Notes"):
+        st.session_state.notes = []
+        for line in notes_input.splitlines():
+            if not line.strip(): continue
+            parts = line.split('-', 1)
+            lot_code = parts[0].strip() if len(parts)>1 else 'Unknown'
+            note_txt = parts[1].strip() if len(parts)>1 else line.strip()
+            action = 'Note Logged'
+            follow = ''
+            if 'hung' in note_txt.lower() and 'scrap' in note_txt.lower():
+                action = 'Notify Clean-Out Materials'
+            elif 'drywall' in note_txt.lower() and 'frame' in note_txt.lower():
+                action = 'Monitor Hang'
+                follow = (datetime.datetime.now()+datetime.timedelta(hours=48)).strftime('%m/%d/%Y %H:%M')
+            elif 'ready for final' in note_txt.lower():
+                action = 'Notify Schedule Dept for Final Paint'
+            st.session_state.notes.append({
+                'Community': comm,
+                'Lot': lot_code,
+                'Note': note_txt,
+                'Next Action': action,
+                'Follow-Up': follow
+            })
+    if st.session_state.notes:
+        st.table(st.session_state.notes)
+    else:
+        st.info("No notes parsed yet.")
+
+st.sidebar.markdown("---")
+st.sidebar.write("This is a **demo only**—no actual emails go out.")
