@@ -1,11 +1,12 @@
 import streamlit as st
+import pandas as pd
 import datetime
 import os
 import json
 
 # --- Streamlit Config & Branding ---
 st.set_page_config(
-    page_title="🏠 Paint & Drywall Automator",
+    page_title="Paint & Drywall Automator",
     page_icon="🏠",
     layout="wide"
 )
@@ -14,14 +15,13 @@ st.markdown("""
       #MainMenu {visibility: hidden;}
       footer     {visibility: hidden;}
       header     {visibility: hidden;}
+      .stTable table {border-radius: 8px; overflow: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 # Sidebar logo
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
-else:
-    st.sidebar.markdown("## 🏠 Paint & Drywall Automator Demo")
 
 # --- Data Persistence Utilities ---
 DATA_FILE = "demo_data.json"
@@ -38,7 +38,7 @@ def save_data(data):
 st.session_state.setdefault('epo_log', load_data().get('epo_log', []))
 st.session_state.setdefault('notes',    load_data().get('notes',    []))
 
-# --- Business Constants & Logic ---
+# --- Business Data & Helpers ---
 TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
 COMMUNITIES = {
     'Galloway': {t: 'America Drywall' for t in TASKS},
@@ -86,39 +86,30 @@ def generate_schedule(community, start_date):
 
 def classify_note_locally(lot, community, text):
     txt = text.lower()
-    # defaults
     action = 'Note Logged'
     sub = ''
     due_date = ''
     email_to = ''
     email_draft = ''
 
-    # 1) Clean-out materials scheduling
     if 'clean-out' in txt or 'clean out' in txt or 'schedule clean' in txt:
         action = 'Schedule Clean-Out Materials'
         sub = 'Scrap Truck'
         due_date = (datetime.datetime.now() + datetime.timedelta(days=1))\
                    .strftime('%m/%d/%Y')
-    # 2) Framing stage + drywall → monitor hang
     elif 'drywall' in txt and 'frame' in txt:
         action = 'Monitor Hang'
-        sub = ''
-    # 3) Final point-up / paint
     elif ('ready for final' in txt or 'final paint' in txt or
           'final point up' in txt or 'final point-up' in txt):
         action = 'Notify Final Point-Up/Paint'
-        # placeholder email to be replaced with your office address
         email_to = 'office@scheduling.example.com'
         email_draft = (
             f"Hi team,\n\n"
             f"Just checking if Lot {lot} in {community} is ready for final point-up or paint soon. "
             f"Is it on our radar?\n\nThanks."
         )
-    # 4) EPO requests
     elif 'epo' in txt or 'ask for epo' in txt:
         action = 'Request EPO'
-        sub = ''
-    # else leave defaults
 
     return {
         "Lot": lot,
@@ -131,27 +122,25 @@ def classify_note_locally(lot, community, text):
         "Email Draft": email_draft
     }
 
-# --- Sidebar Navigation & Debug ---
+# --- Sidebar Navigation ---
 st.sidebar.markdown("---")
-mode = st.sidebar.selectbox("Choose demo mode", [
+mode = st.sidebar.selectbox("Mode", [
     "Schedule & Order Mud",
     "EPO & Tracker",
     "QC Scheduling",
     "Homeowner Scheduling",
     "Note Taking"
 ])
-st.sidebar.write(f"🐛 MODE: {mode}")
 
 # --- Schedule & Order Mud ---
 if mode == "Schedule & Order Mud":
-    st.sidebar.write("🐛 BRANCH: Schedule")
-    st.header("📆 Schedule Generator & Mud Order")
+    st.header("Schedule Generator & Mud Order")
     with st.form("schedule_form"):
         lot       = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
         start     = st.date_input("Start date")
-        go        = st.form_submit_button("Generate Schedule")
-    if go:
+        generate  = st.form_submit_button("Generate Schedule")
+    if generate:
         sched = generate_schedule(community, start)
         st.table({
             'Task': [t for t,_,_ in sched],
@@ -160,12 +149,11 @@ if mode == "Schedule & Order Mud":
         })
         if st.button("Order Mud for Scrap Date"):
             scrap_date = sched[1][2].strftime('%m/%d/%Y')
-            st.success(f"📧 Mud order email queued for {scrap_date}")
+            st.success(f"Mud order queued for {scrap_date}")
 
 # --- EPO & Tracker ---
 elif mode == "EPO & Tracker":
-    st.sidebar.write("🐛 BRANCH: EPO")
-    st.header("✉️ EPO Automation & Tracker")
+    st.header("EPO Automation & Tracker")
     with st.form("epo_form", clear_on_submit=True):
         lot       = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
@@ -175,44 +163,41 @@ elif mode == "EPO & Tracker":
         send      = st.form_submit_button("Send EPO")
     if send:
         now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-        entry = {
-            'lot': lot, 'comm': community, 'to': email_to,
-            'amt': amount, 'sent': now, 'replied': False, 'followup': False
-        }
+        entry = {'lot':lot,'comm':community,'to':email_to,
+                 'amt':amount,'sent':now,'replied':False,'followup':False}
         st.session_state.epo_log.append(entry)
-        save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
+        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
         st.success(f"EPO for Lot {lot} recorded at {now}")
-    st.subheader("📋 EPO Tracker")
+    st.subheader("EPO Tracker")
     if st.session_state.epo_log:
-        for i,e in enumerate(st.session_state.epo_log):
+        for i, e in enumerate(st.session_state.epo_log):
             cols = st.columns(6)
             cols[0].write(e['lot']); cols[1].write(e['comm']); cols[2].write(e['sent'])
             status = 'Replied' if e['replied'] else ('Follow-Up Sent' if e['followup'] else 'Pending')
             cols[3].write(status)
             if not e['replied'] and cols[4].button("Mark Replied", key=f"r{i}"):
                 e['replied'] = True
-                save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
+                save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
             if not e['followup'] and not e['replied'] and cols[5].button("Send Follow-Up", key=f"f{i}"):
                 e['followup'] = True
-                save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
-                st.info(f"🔔 Follow-up for Lot {e['lot']} queued.")
+                save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+                st.info(f"Follow-up queued for Lot {e['lot']}")
     else:
         st.info("No EPOs yet.")
 
 # --- QC Scheduling ---
 elif mode == "QC Scheduling":
-    st.sidebar.write("🐛 BRANCH: QC")
-    st.header("🔍 QC Scheduling")
+    st.header("QC Scheduling")
     lot        = st.text_input("Lot number", key='qc_lot')
     community  = st.selectbox("Community", list(COMMUNITIES), key='qc_comm')
     pu_date    = st.date_input("QC Point-Up date", key='qc_pu')
     paint_date = st.date_input("QC Paint date", key='qc_paint')
     paint_sub  = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key='qc_sub')
-    stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
+    stain_date = st.date_input("QC Stain date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')}, 
-            {'Task':'QC Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')}, 
+            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
+            {'Task':'QC Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')},
             {'Task':'QC Stain','Sub':'Dorby','Date':stain_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
@@ -220,14 +205,13 @@ elif mode == "QC Scheduling":
 
 # --- Homeowner Scheduling ---
 elif mode == "Homeowner Scheduling":
-    st.sidebar.write("🐛 BRANCH: Homeowner")
-    st.header("🏠 Homeowner Scheduling")
+    st.header("Homeowner Scheduling")
     lot        = st.text_input("Lot number", key='ho_lot')
     community  = st.selectbox("Community", list(COMMUNITIES), key='ho_comm')
     pu_date    = st.date_input("HO Point-Up date", key='ho_pu')
     paint_date = st.date_input("HO Paint date", key='ho_paint')
     paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
-    if st.button("Schedule Homeowner Tasks"):
+    if st.button("Schedule HO Tasks"):
         tasks = [
             {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
             {'Task':'HO Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')}
@@ -235,30 +219,25 @@ elif mode == "Homeowner Scheduling":
         st.table(tasks)
         st.json({'lot':lot,'comm':community,'home_tasks':tasks})
 
-# --- Note Taking with Local Classification ---
+# --- Note Taking ---
 elif mode == "Note Taking":
-    st.sidebar.write("🐛 BRANCH: Note Taking")
-    st.header("📝 Smart Note Taking")
+    st.header("Smart Note Taking")
     community = st.selectbox("Community", list(COMMUNITIES), key='note_comm')
-    raw       = st.text_area("Enter notes (format: Lot### - your note)", height=150)
-    if st.button("Classify & Parse"):
+    raw = st.text_area("Enter notes (format: Lot### - your note)", height=150)
+    if st.button("Parse Notes"):
         st.session_state.notes = []
         for line in raw.splitlines():
-            if not line.strip(): 
-                continue
-            parts = line.split('-', 1)
-            lot_code = parts[0].strip()
-            note_txt = parts[1].strip() if len(parts)>1 else ""
-            item = classify_note_locally(lot_code, community, note_txt)
+            if not line.strip(): continue
+            lot_code, note_txt = (line.split('-',1)+[""])[0:2]
+            item = classify_note_locally(lot_code.strip(), community, note_txt.strip())
             st.session_state.notes.append(item)
-        save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
-
+        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
     if st.session_state.notes:
-        st.subheader("Action Items")
-        st.table(st.session_state.notes)
+        df = pd.DataFrame(st.session_state.notes)
+        st.table(df.style.hide_index())
     else:
         st.info("No notes yet.")
 
 # --- Footer ---
-st.sidebar.markdown("---")
-st.sidebar.write("Demo only—no real emails or reminders.")
+st.markdown("---")
+st.write("Demo only—no real emails or reminders.")
