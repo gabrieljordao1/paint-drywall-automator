@@ -2,7 +2,6 @@ import streamlit as st
 import datetime
 import os
 import json
-from transformers import pipeline
 
 # --- Streamlit Config & Branding ---
 st.set_page_config(
@@ -12,9 +11,9 @@ st.set_page_config(
 )
 st.markdown("""
     <style>
-        #MainMenu {visibility: hidden;}
-        footer     {visibility: hidden;}
-        header     {visibility: hidden;}
+      #MainMenu {visibility: hidden;}
+      footer     {visibility: hidden;}
+      header     {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -23,12 +22,6 @@ if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
 else:
     st.sidebar.markdown("## 🏠 Paint & Drywall Automator Demo")
-
-# --- Load & initialize local zero-shot classification model ---
-zero_shot = pipeline(
-    "zero-shot-classification",
-    model="facebook/bart-large-mnli"
-)
 
 # --- Data Persistence Utilities ---
 DATA_FILE = "demo_data.json"
@@ -51,29 +44,29 @@ COMMUNITIES = {
     'Galloway': {t: 'America Drywall' for t in TASKS},
     'Huntersville Town Center': {t: 'America Drywall' for t in TASKS},
     'Claremont': {
-        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
-        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
-        'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
+        'Hang':'Ricardo','Scrap':'Scrap Brothers',
+        'Tape':'Juan Trejo','Bed':'Juan Trejo',
+        'Skim':'Juan Trejo','Sand':'Juan Trejo'
     },
     'Context': {t: 'America Drywall' for t in TASKS},
     'Greenway Overlook': {t: 'America Drywall' for t in TASKS},
     'Camden': {t: 'America Drywall' for t in TASKS},
     'Olmstead': {
-        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
-        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
-        'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
+        'Hang':'Ricardo','Scrap':'Scrap Brothers',
+        'Tape':'Juan Trejo','Bed':'Juan Trejo',
+        'Skim':'Juan Trejo','Sand':'Juan Trejo'
     },
     'Maxwell': {t: 'America Drywall' for t in TASKS},
 }
-DUR = {'Hang':1, 'Scrap':1, 'Sand':1, 'Tape':2, 'Bed':2, 'Skim':2}
+DUR = {'Hang':1,'Scrap':1,'Sand':1,'Tape':2,'Bed':2,'Skim':2}
 POINTUP_SUBS = {
-    'Galloway':'Luis A. Lopez', 'Huntersville Town Center':'Luis A. Lopez',
-    'Claremont':'Edwin', 'Context':'Edwin', 'Greenway Overlook':'Edwin',
-    'Camden':'Luis A. Lopez', 'Olmstead':'Luis A. Lopez', 'Maxwell':'Luis A. Lopez'
+    'Galloway':'Luis A. Lopez','Huntersville Town Center':'Luis A. Lopez',
+    'Claremont':'Edwin','Context':'Edwin','Greenway Overlook':'Edwin',
+    'Camden':'Luis A. Lopez','Olmstead':'Luis A. Lopez','Maxwell':'Luis A. Lopez'
 }
 PAINT_SUBS = [
-    'GP Painting Services', 'Jorge Gomez',
-    'Christian Painting', 'Carlos Gabriel', 'Juan Ulloa'
+    'GP Painting Services','Jorge Gomez',
+    'Christian Painting','Carlos Gabriel','Juan Ulloa'
 ]
 
 def generate_schedule(community, start_date):
@@ -92,15 +85,22 @@ def generate_schedule(community, start_date):
     return schedule
 
 def classify_note_locally(lot, community, text):
-    labels = ["EPO", "MonitorHang", "FinalPaint", "Other"]
-    result = zero_shot(text, candidate_labels=labels)
-    category = result["labels"][0]
-    # simple due-date logic
-    due_date = ""
-    if category == "EPO":
-        due_date = (datetime.datetime.now() + datetime.timedelta(hours=48))\
-                   .strftime("%m/%d/%Y %H:%M")
-    # draft email
+    txt = text.lower()
+    # Determine category
+    if 'epo' in txt or 'ask for epo' in txt:
+        category = 'EPO'
+    elif 'drywall' in txt and 'frame' in txt:
+        category = 'MonitorHang'
+    elif any(k in txt for k in ['flooring','shoe molding','electrical']):
+        category = 'FinalPaint'
+    else:
+        category = 'Other'
+    # Due date heuristic
+    due_date = ''
+    if category == 'EPO':
+        due_date = (datetime.datetime.now() + datetime.timedelta(hours=48)
+                   ).strftime('%m/%d/%Y %H:%M')
+    # Draft email template
     email_draft = f"Please handle *{category}* for Lot {lot} in {community}."
     return {
         "Lot": lot,
@@ -165,7 +165,7 @@ elif mode == "EPO & Tracker":
         st.success(f"EPO for Lot {lot} recorded at {now}")
     st.subheader("📋 EPO Tracker")
     if st.session_state.epo_log:
-        for i, e in enumerate(st.session_state.epo_log):
+        for i,e in enumerate(st.session_state.epo_log):
             cols = st.columns(6)
             cols[0].write(e['lot']); cols[1].write(e['comm']); cols[2].write(e['sent'])
             status = 'Replied' if e['replied'] else ('Follow-Up Sent' if e['followup'] else 'Pending')
@@ -181,7 +181,7 @@ elif mode == "EPO & Tracker":
         st.info("No EPOs yet.")
 
 # --- QC Scheduling ---
-elif mode == "QC Scheduling__":
+elif mode == "QC Scheduling":
     st.sidebar.write("🐛 BRANCH: QC")
     st.header("🔍 QC Scheduling")
     lot        = st.text_input("Lot number", key='qc_lot')
@@ -192,12 +192,12 @@ elif mode == "QC Scheduling__":
     stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'Task':'QC Point-Up', 'Sub':POINTUP_SUBS.get(community,'—'), 'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Paint',    'Sub':paint_sub,                      'Date':paint_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Stain',    'Sub':'Dorby',                        'Date':stain_date.strftime('%m/%d/%Y')}
+            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
+            {'Task':'QC Paint',   'Sub':paint_sub,                     'Date':paint_date.strftime('%m/%d/%Y')},
+            {'Task':'QC Stain',   'Sub':'Dorby',                       'Date':stain_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
-        st.json({'lot': lot, 'comm': community, 'qc_tasks': tasks})
+        st.json({'lot':lot,'comm':community,'qc_tasks':tasks})
 
 # --- Homeowner Scheduling ---
 elif mode == "Homeowner Scheduling":
@@ -210,23 +210,22 @@ elif mode == "Homeowner Scheduling":
     paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {'Task':'HO Point-Up', 'Sub':POINTUP_SUBS.get(community,'—'), 'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'HO Paint',    'Sub':paint_sub,                       'Date':paint_date.strftime('%m/%d/%Y')}
+            {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
+            {'Task':'HO Paint',   'Sub':paint_sub,                      'Date':paint_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
-        st.json({'lot': lot, 'comm': community, 'home_tasks': tasks})
+        st.json({'lot':lot,'comm':community,'home_tasks':tasks})
 
 # --- Note Taking with Local Classification ---
 elif mode == "Note Taking":
     st.sidebar.write("🐛 BRANCH: Note Taking")
     st.header("📝 Smart Note Taking")
     community = st.selectbox("Community", list(COMMUNITIES), key='note_comm')
-    raw       = st.text_area("Enter notes (Lot### - your note)", height=150)    
+    raw       = st.text_area("Enter notes (format: Lot### - your note)", height=150)
     if st.button("Classify & Parse"):
         st.session_state.notes = []
         for line in raw.splitlines():
-            if not line.strip():
-                continue
+            if not line.strip(): continue
             parts = line.split('-', 1)
             lot_code = parts[0].strip()
             note_txt = parts[1].strip() if len(parts)>1 else ""
@@ -234,6 +233,7 @@ elif mode == "Note Taking":
             st.session_state.notes.append(item)
         save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
     if st.session_state.notes:
+        st.subheader("Action Items")
         st.table(st.session_state.notes)
     else:
         st.info("No notes yet.")
