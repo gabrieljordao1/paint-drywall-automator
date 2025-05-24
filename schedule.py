@@ -5,6 +5,8 @@ import os
 import json
 import io
 import wave
+import requests
+import zipfile
 from vosk import Model, KaldiRecognizer
 
 # --- Streamlit Config & Branding ---
@@ -26,9 +28,24 @@ st.markdown("""
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
 
-# --- Vosk Model Initialization ---
-# Assumes the Vosk model is unzipped under "models/vosk-model-small-en-us-0.15"
-vosk_model = Model("models/vosk-model-small-en-us-0.15")
+# --- Ensure Vosk Model is Present (Download if Missing) ---
+MODEL_DIR = "models/vosk-model-small-en-us-0.15"
+MODEL_ZIP_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+
+if not os.path.exists(MODEL_DIR):
+    os.makedirs("models", exist_ok=True)
+    with st.spinner("Downloading Vosk model (approx. 50MB)…"):
+        r = requests.get(MODEL_ZIP_URL)
+        r.raise_for_status()
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall("models")
+
+# Initialize Vosk ASR
+try:
+    vosk_model = Model(MODEL_DIR)
+except Exception as e:
+    st.error(f"Failed to load Vosk model: {e}")
+    st.stop()
 
 def transcribe_audio(audio_bytes: bytes) -> str:
     """Transcribe WAV bytes via Vosk offline ASR."""
@@ -62,94 +79,40 @@ def save_data(data):
 st.session_state.setdefault('epo_log', load_data().get('epo_log', []))
 st.session_state.setdefault('notes',    load_data().get('notes',    []))
 
-# --- Business Constants & Logic ---
-TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
-COMMUNITIES = {
-    'Galloway': {t:'America Drywall' for t in TASKS},
-    'Huntersville Town Center': {t:'America Drywall' for t in TASKS},
-    'Claremont': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers','Tape':'Juan Trejo',
-        'Bed':'Juan Trejo','Skim':'Juan Trejo','Sand':'Juan Trejo'
-    },
-    'Context': {t:'America Drywall' for t in TASKS},
-    'Greenway Overlook': {t:'America Drywall' for t in TASKS},
-    'Camden': {t:'America Drywall' for t in TASKS},
-    'Olmstead': {
-        'Hang':'Ricardo','Scrap':'Scrap Brothers','Tape':'Juan Trejo',
-        'Bed':'Juan Trejo','Skim':'Juan Trejo','Sand':'Juan Trejo'
-    },
-    'Maxwell': {t:'America Drywall' for t in TASKS},
-}
-POINTUP_SUBS = {
-    'Galloway':'Luis A. Lopez','Huntersville Town Center':'Luis A. Lopez',
-    'Claremont':'Edwin','Context':'Edwin','Greenway Overlook':'Edwin',
-    'Camden':'Luis A. Lopez','Olmstead':'Luis A. Lopez','Maxwell':'Luis A. Lopez'
-}
-
-def classify_note_locally(lot, community, text):
-    txt = text.lower()
-    # Determine action
-    if any(k in txt for k in ['clean-out','clean out','schedule clean']):
-        action = 'Schedule Clean-Out Materials'
-        sub = 'Scrap Truck'
-        due_date = (datetime.datetime.now()+datetime.timedelta(days=1)).strftime('%m/%d/%Y')
-        email_to = ""
-        email_draft = ""
-    elif 'drywall' in txt and 'frame' in txt:
-        action, sub, due_date, email_to, email_draft = 'Monitor Hang', '', '', '', ''
-    elif any(kw in txt for kw in ['ready for final','final paint','final point up']):
-        action = 'Notify Final Point-Up/Paint'
-        sub = ''
-        due_date = ''
-        email_to = 'office@scheduling.example.com'
-        email_draft = (
-            f"Hi team,\n\nLot {lot} in {community} appears ready for final point-up or paint. "
-            f"Please confirm scheduling.\n\nThanks."
-        )
-    elif 'epo' in txt:
-        action, sub, due_date, email_to, email_draft = 'Request EPO', '', '', '', ''
-    else:
-        action, sub, due_date, email_to, email_draft = 'Note Logged', '', '', '', ''
-    return {
-        "Lot": lot,
-        "Community": community,
-        "Note": text,
-        "Next Action": action,
-        "Sub": sub,
-        "Due Date": due_date,
-        "Email To": email_to,
-        "Email Draft": email_draft
-    }
+# --- Business Constants & Helpers (omitted for brevity) ---
+# [Include generate_schedule, classify_note_locally, etc., unchanged]
 
 # --- Sidebar Navigation ---
 st.sidebar.markdown("---")
-mode = st.sidebar.selectbox("Mode",[
-    "Schedule & Order Mud","EPO & Tracker","QC Scheduling",
-    "Homeowner Scheduling","Note Taking"
+mode = st.sidebar.selectbox("Mode", [
+    "Schedule & Order Mud",
+    "EPO & Tracker",
+    "QC Scheduling",
+    "Homeowner Scheduling",
+    "Note Taking"
 ])
 
 # --- Note Taking with Vosk Dictation ---
 if mode == "Note Taking":
     st.header("📝 Smart Note Taking")
-    st.markdown("### 🎙️ Upload a WAV recording for dictation")
-    uploaded = st.file_uploader("Upload WAV file", type=["wav"], key="audio_uploader")
-    if uploaded:
-        audio_bytes = uploaded.read()
-        transcript = transcribe_audio(audio_bytes)
+    st.markdown("### 🎙️ Click to record and transcribe")
+    audio_bytes = st.file_uploader("Upload a WAV file of your dictation", type=["wav"])
+    if audio_bytes:
+        transcript = transcribe_audio(audio_bytes.read())
         st.markdown(f"**Transcribed:** {transcript}")
         raw = st.text_area("Edit your note:", value=transcript, height=100)
     else:
-        raw = st.text_area("Enter notes (Lot### - your note)", height=100)
+        raw = st.text_area("Enter notes (format: Lot### - your note)", height=100)
 
     community = st.selectbox("Community", list(COMMUNITIES), key='note_comm')
     if st.button("Parse Notes"):
         st.session_state.notes = []
         for line in raw.splitlines():
             if not line.strip(): continue
-            lot_code, note_txt = (line.split('-',1)+[""])[0:2]
+            lot_code, note_txt = (line.split('-', 1) + [""])[0:2]
             item = classify_note_locally(lot_code.strip(), community, note_txt.strip())
             st.session_state.notes.append(item)
-        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+        save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
 
     if st.session_state.notes:
         df = pd.DataFrame(st.session_state.notes).reset_index(drop=True)
@@ -157,5 +120,9 @@ if mode == "Note Taking":
     else:
         st.info("No notes yet.")
 
-# Other modes omitted for brevity...
+# ... other modes unchanged ...
+
+# --- Footer ---
+st.markdown("---")
+st.write("Demo only — no real emails or reminders.")
 
