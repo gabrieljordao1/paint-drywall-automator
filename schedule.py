@@ -7,7 +7,7 @@ TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
 COMMUNITIES = {
     'Galloway':                   {t: 'America Drywall' for t in TASKS},
     'Huntersville Town Center':   {t: 'America Drywall' for t in TASKS},
-    'Claremont': {
+    'Clairmont': {
         'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers', 'Tape': 'Juan Trejo',
         'Bed': 'Juan Trejo', 'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
