@@ -1,33 +1,29 @@
 import streamlit as st
-
-# —————— EMBEDDED BACKGROUND LOGO ——————
-# 1) Replace INSERT_BASE64_HERE with your full Base64 string (no line-breaks)
-B64_BG = "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"
-
-# 2) Inject the CSS for the translucent background
-st.markdown(f"""
-    <style>
-    .stApp {{
-        background: url("data:image/png;base64,{B64_BG}") no-repeat center;
-        background-size: cover;
-        opacity: 0.1;   /* adjust between 0.0 (invisible) and 1.0 (opaque) */
-    }}
-    </style>
-""", unsafe_allow_html=True)
-# ————————————————————————————————————————
-
 import datetime
 import os
 import json
 
-# Streamlit page setup
+# ─── 1) PAGE CONFIG ────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Paint & Drywall Automator",
     page_icon="🏠",
     layout="wide"
 )
 
-# Hide default Streamlit header/footer/menu
+# ─── 2) EMBED BACKGROUND LOGO ─────────────────────────────────────────────────
+# Replace INSERT_BASE64_HERE with your full Base64 string (no line breaks)
+B64_BG = "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"
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background: url("data:image/png;base64,{B64_BG}") no-repeat center;
+        background-size: cover;
+        opacity: 0.1;
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+# ─── 3) HIDE STREAMLIT UI ELEMENTS ─────────────────────────────────────────────
 st.markdown("""
     <style>
       #MainMenu {visibility: hidden;}
@@ -36,11 +32,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Sidebar logo (optional)
+# ─── 4) OPTIONAL SIDEBAR LOGO ──────────────────────────────────────────────────
 if os.path.exists("stancillogo.png"):
     st.sidebar.image("stancillogo.png", use_column_width=True)
 
-# --- Data Persistence ---
+# ─── 5) DATA PERSISTENCE ──────────────────────────────────────────────────────
 DATA_FILE = "demo_data.json"
 def load_data():
     try:
@@ -55,7 +51,7 @@ def save_data(data):
 st.session_state.setdefault('epo_log', load_data().get('epo_log', []))
 st.session_state.setdefault('notes',    load_data().get('notes',    []))
 
-# --- Business Constants & Logic ---
+# ─── 6) BUSINESS CONSTANTS & LOGIC ────────────────────────────────────────────
 TASKS = ['Hang','Scrap','Tape','Bed','Skim','Sand']
 COMMUNITIES = {
     'Galloway': {t:'America Drywall' for t in TASKS},
@@ -103,25 +99,20 @@ def generate_schedule(community, start_date):
 
 def classify_note_locally(lot, community, text):
     txt = text.lower()
-    # Default
     action, sub, due_date, email_to, email_draft = 'Note Logged','','','',''
-    # Clean-out
     if any(k in txt for k in ['clean-out','clean out','schedule clean']):
         action = 'Schedule Clean-Out Materials'
         sub = 'Scrap Truck'
         due_date = (datetime.datetime.now()+datetime.timedelta(days=1)).strftime('%m/%d/%Y')
-    # Framing
     elif 'drywall' in txt and 'frame' in txt:
         action = 'Monitor Hang'
-    # Final
     elif any(kw in txt for kw in ['ready for final','final paint','final point up']):
         action = 'Notify Final Point-Up/Paint'
         email_to = 'office@scheduling@example.com'
         email_draft = (
-            f"Hi team,\n\nLot {lot} in {community} appears ready or nearing final point-up/paint. "
-            f"Please confirm it's on the schedule.\n\nThanks."
+            f"Hi team,\n\nLot {lot} in {community} appears ready for final point-up/paint. "
+            f"Please confirm scheduling.\n\nThanks."
         )
-    # EPO
     elif 'epo' in txt or 'ask for epo' in txt:
         action = 'Request EPO'
     return {
@@ -135,7 +126,7 @@ def classify_note_locally(lot, community, text):
         "Email Draft": email_draft
     }
 
-# --- Sidebar Navigation ---
+# ─── 7) SIDEBAR MODE SELECTOR ──────────────────────────────────────────────────
 st.sidebar.markdown("---")
 mode = st.sidebar.selectbox("Mode", [
     "Schedule & Order Mud",
@@ -145,40 +136,43 @@ mode = st.sidebar.selectbox("Mode", [
     "Note Taking"
 ])
 
-# --- Schedule & Order Mud ---
+# ─── 8) SCHEDULE & ORDER MUD ──────────────────────────────────────────────────
 if mode == "Schedule & Order Mud":
     st.header("📆 Schedule Generator & Mud Order")
-    with st.form("sch"):
-        lot = st.text_input("Lot number")
+    with st.form("schedule_form"):
+        lot       = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
-        start = st.date_input("Start date")
-        if st.form_submit_button("Generate Schedule"):
-            sched = generate_schedule(community, start)
-            st.table({
-                'Task':[t for t,_,_ in sched],
-                'Sub':[s for _,s,_ in sched],
-                'Date':[d.strftime('%m/%d/%Y') for *_,d in sched]
-            })
-            if st.button("Order Mud for Scrap Date"):
-                st.success(f"Mud order queued for {sched[1][2].strftime('%m/%d/%Y')}")
+        start     = st.date_input("Start date")
+        go        = st.form_submit_button("Generate Schedule")
+    if go:
+        sched = generate_schedule(community, start)
+        st.table({
+            'Task':[t for t,_,_ in sched],
+            'Sub':[s for _,s,_ in sched],
+            'Date':[d.strftime('%m/%d/%Y') for *_,d in sched]
+        })
+        if st.button("Order Mud for Scrap Date"):
+            scrap = sched[1][2].strftime('%m/%d/%Y')
+            st.success(f"Mud order queued for {scrap}")
 
-# --- EPO & Tracker ---
+# ─── 9) EPO & TRACKER ─────────────────────────────────────────────────────────
 elif mode == "EPO & Tracker":
     st.header("✉️ EPO Automation & Tracker")
-    with st.form("epo", clear_on_submit=True):
-        lot = st.text_input("Lot number")
+    with st.form("epo_form", clear_on_submit=True):
+        lot       = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
-        email_to = st.text_input("Builder Email")
-        amount = st.text_input("Amount")
-        photos = st.file_uploader("Attach photos", accept_multiple_files=True)
-        if st.form_submit_button("Send EPO"):
-            now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-            st.session_state.epo_log.append({
-                'lot':lot,'comm':community,'to':email_to,
-                'amt':amount,'sent':now,'replied':False,'followup':False
-            })
-            save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
-            st.success(f"EPO for Lot {lot} recorded at {now}")
+        email_to  = st.text_input("Builder Email")
+        amount    = st.text_input("Amount")
+        photos    = st.file_uploader("Attach photos", accept_multiple_files=True)
+        send      = st.form_submit_button("Send EPO")
+    if send:
+        now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
+        st.session_state.epo_log.append({
+            'lot':lot,'comm':community,'to':email_to,
+            'amt':amount,'sent':now,'replied':False,'followup':False
+        })
+        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+        st.success(f"EPO for Lot {lot} recorded at {now}")
     st.subheader("📋 EPO Tracker")
     if st.session_state.epo_log:
         for i,e in enumerate(st.session_state.epo_log):
@@ -196,7 +190,7 @@ elif mode == "EPO & Tracker":
     else:
         st.info("No EPOs yet.")
 
-# --- QC Scheduling ---
+# ─── 10) QC SCHEDULING ─────────────────────────────────────────────────────────
 elif mode == "QC Scheduling":
     st.header("🔍 QC Scheduling")
     lot = st.text_input("Lot number", key='qc_lot')
@@ -213,26 +207,26 @@ elif mode == "QC Scheduling":
         ]
         st.table(tasks)
 
-# --- Homeowner Scheduling ---
+# ─── 11) HOMEOWNER SCHEDULING ─────────────────────────────────────────────────
 elif mode == "Homeowner Scheduling":
     st.header("🏠 Homeowner Scheduling")
     lot = st.text_input("Lot number", key='ho_lot')
     community = st.selectbox("Community", list(COMMUNITIES), key='ho_comm')
-    pu = st.date_input("HO Point-Up date", key='ho_pu')
-    pd = st.date_input("HO Paint date", key='ho_paint')
-    ps = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
+    pu_date = st.date_input("HO Point-Up date", key='ho_pu')
+    paint_date = st.date_input("HO Paint date", key='ho_paint')
+    paint_sub = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu.strftime('%m/%d/%Y')},
-            {'Task':'HO Paint','Sub':ps,'Date':pd.strftime('%m/%d/%Y')}
+            {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
+            {'Task':'HO Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
 
-# --- Note Taking ---
+# ─── 12) NOTE TAKING ───────────────────────────────────────────────────────────
 elif mode == "Note Taking":
     st.header("📝 Smart Note Taking")
     community = st.selectbox("Community", list(COMMUNITIES), key='note_comm')
-    raw = st.text_area("Enter notes (Lot### - your note)", height=150)
+    raw = st.text_area("Enter notes (format: Lot### - your note)", height=150)
     if st.button("Parse Notes"):
         st.session_state.notes = []
         for line in raw.splitlines():
@@ -249,6 +243,6 @@ elif mode == "Note Taking":
     else:
         st.info("No notes yet.")
 
-# --- Footer ---
+# ─── 13) FOOTER ─────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.write("Demo only — no real emails or reminders.")
