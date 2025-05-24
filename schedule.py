@@ -1,28 +1,46 @@
 import streamlit as st
+
+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
+# 1) Replace INSERT_BASE64_HERE with your full Base64 string (no line-breaks)
+B64_BG = "INSERT_BASE64_HERE"
+
+# 2) Inject the CSS for the translucent background
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background: url("data:image/png;base64,{B64_BG}") no-repeat center;
+        background-size: cover;
+        opacity: 0.1;   /* adjust between 0.0 (invisible) and 1.0 (opaque) */
+    }}
+    </style>
+""", unsafe_allow_html=True)
+# ————————————————————————————————————————
+
 import datetime
 import os
 import json
 
-# --- Streamlit Config & Branding ---
+# Streamlit page setup
 st.set_page_config(
     page_title="Paint & Drywall Automator",
     page_icon="🏠",
     layout="wide"
 )
+
+# Hide default Streamlit header/footer/menu
 st.markdown("""
     <style>
       #MainMenu {visibility: hidden;}
       footer     {visibility: hidden;}
       header     {visibility: hidden;}
-      .stTable table {border-radius: 8px; overflow: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# Sidebar logo
-if os.path.exists("logo.png"):
-    st.sidebar.image("logo.png", use_column_width=True)
+# Sidebar logo (optional)
+if os.path.exists("stancillogo.png"):
+    st.sidebar.image("stancillogo.png", use_column_width=True)
 
-# --- Data Persistence Utilities ---
+# --- Data Persistence ---
 DATA_FILE = "demo_data.json"
 def load_data():
     try:
@@ -38,24 +56,24 @@ st.session_state.setdefault('epo_log', load_data().get('epo_log', []))
 st.session_state.setdefault('notes',    load_data().get('notes',    []))
 
 # --- Business Constants & Logic ---
-TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
+TASKS = ['Hang','Scrap','Tape','Bed','Skim','Sand']
 COMMUNITIES = {
-    'Galloway': {t: 'America Drywall' for t in TASKS},
-    'Huntersville Town Center': {t: 'America Drywall' for t in TASKS},
+    'Galloway': {t:'America Drywall' for t in TASKS},
+    'Huntersville Town Center': {t:'America Drywall' for t in TASKS},
     'Claremont': {
         'Hang':'Ricardo','Scrap':'Scrap Brothers',
         'Tape':'Juan Trejo','Bed':'Juan Trejo',
         'Skim':'Juan Trejo','Sand':'Juan Trejo'
     },
-    'Context': {t: 'America Drywall' for t in TASKS},
-    'Greenway Overlook': {t: 'America Drywall' for t in TASKS},
-    'Camden': {t: 'America Drywall' for t in TASKS},
+    'Context': {t:'America Drywall' for t in TASKS},
+    'Greenway Overlook': {t:'America Drywall' for t in TASKS},
+    'Camden': {t:'America Drywall' for t in TASKS},
     'Olmstead': {
         'Hang':'Ricardo','Scrap':'Scrap Brothers',
         'Tape':'Juan Trejo','Bed':'Juan Trejo',
         'Skim':'Juan Trejo','Sand':'Juan Trejo'
     },
-    'Maxwell': {t: 'America Drywall' for t in TASKS},
+    'Maxwell': {t:'America Drywall' for t in TASKS},
 }
 DUR = {'Hang':1,'Scrap':1,'Sand':1,'Tape':2,'Bed':2,'Skim':2}
 POINTUP_SUBS = {
@@ -72,13 +90,13 @@ def generate_schedule(community, start_date):
     schedule, cur = [], start_date
     for task in TASKS:
         days = DUR[task]
-        skip_sun = (task != 'Scrap')
-        skip_wk  = (task == 'Scrap')
+        skip_sun = (task!='Scrap')
+        skip_wk  = (task=='Scrap')
         added = 0
         while added < days:
             cur += datetime.timedelta(days=1)
-            if skip_wk and cur.weekday() >= 5:    continue
-            if skip_sun and cur.weekday() == 6:   continue
+            if skip_wk and cur.weekday() >= 5: continue
+            if skip_sun and cur.weekday() == 6: continue
             added += 1
         schedule.append((task, COMMUNITIES[community].get(task,'—'), cur))
     return schedule
@@ -87,16 +105,15 @@ def classify_note_locally(lot, community, text):
     txt = text.lower()
     # Default
     action, sub, due_date, email_to, email_draft = 'Note Logged','','','',''
-    # Clean-out materials
+    # Clean-out
     if any(k in txt for k in ['clean-out','clean out','schedule clean']):
         action = 'Schedule Clean-Out Materials'
         sub = 'Scrap Truck'
-        due_date = (datetime.datetime.now() + datetime.timedelta(days=1))\
-                   .strftime('%m/%d/%Y')
-    # Framing → monitor hang
+        due_date = (datetime.datetime.now()+datetime.timedelta(days=1)).strftime('%m/%d/%Y')
+    # Framing
     elif 'drywall' in txt and 'frame' in txt:
         action = 'Monitor Hang'
-    # Final point-up / paint
+    # Final
     elif any(kw in txt for kw in ['ready for final','final paint','final point up']):
         action = 'Notify Final Point-Up/Paint'
         email_to = 'office@scheduling@example.com'
@@ -131,41 +148,37 @@ mode = st.sidebar.selectbox("Mode", [
 # --- Schedule & Order Mud ---
 if mode == "Schedule & Order Mud":
     st.header("📆 Schedule Generator & Mud Order")
-    with st.form("schedule_form"):
-        lot       = st.text_input("Lot number")
+    with st.form("sch"):
+        lot = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
-        start     = st.date_input("Start date")
-        go        = st.form_submit_button("Generate Schedule")
-    if go:
-        sched = generate_schedule(community, start)
-        st.table({
-            'Task': [t for t,_,_ in sched],
-            'Sub':  [s for _,s,_ in sched],
-            'Date': [d.strftime('%m/%d/%Y') for *_,d in sched]
-        })
-        if st.button("Order Mud for Scrap Date"):
-            scrap_date = sched[1][2].strftime('%m/%d/%Y')
-            st.success(f"Mud order queued for {scrap_date}")
+        start = st.date_input("Start date")
+        if st.form_submit_button("Generate Schedule"):
+            sched = generate_schedule(community, start)
+            st.table({
+                'Task':[t for t,_,_ in sched],
+                'Sub':[s for _,s,_ in sched],
+                'Date':[d.strftime('%m/%d/%Y') for *_,d in sched]
+            })
+            if st.button("Order Mud for Scrap Date"):
+                st.success(f"Mud order queued for {sched[1][2].strftime('%m/%d/%Y')}")
 
 # --- EPO & Tracker ---
 elif mode == "EPO & Tracker":
     st.header("✉️ EPO Automation & Tracker")
-    with st.form("epo_form", clear_on_submit=True):
-        lot       = st.text_input("Lot number")
+    with st.form("epo", clear_on_submit=True):
+        lot = st.text_input("Lot number")
         community = st.selectbox("Community", list(COMMUNITIES))
-        email_to  = st.text_input("Builder Email")
-        amount    = st.text_input("Amount")
-        photos    = st.file_uploader("Attach photos", accept_multiple_files=True)
-        send      = st.form_submit_button("Send EPO")
-    if send:
-        now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-        entry = {
-            'lot':lot,'comm':community,'to':email_to,
-            'amt':amount,'sent':now,'replied':False,'followup':False
-        }
-        st.session_state.epo_log.append(entry)
-        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
-        st.success(f"EPO for Lot {lot} recorded at {now}")
+        email_to = st.text_input("Builder Email")
+        amount = st.text_input("Amount")
+        photos = st.file_uploader("Attach photos", accept_multiple_files=True)
+        if st.form_submit_button("Send EPO"):
+            now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
+            st.session_state.epo_log.append({
+                'lot':lot,'comm':community,'to':email_to,
+                'amt':amount,'sent':now,'replied':False,'followup':False
+            })
+            save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+            st.success(f"EPO for Lot {lot} recorded at {now}")
     st.subheader("📋 EPO Tracker")
     if st.session_state.epo_log:
         for i,e in enumerate(st.session_state.epo_log):
@@ -186,55 +199,52 @@ elif mode == "EPO & Tracker":
 # --- QC Scheduling ---
 elif mode == "QC Scheduling":
     st.header("🔍 QC Scheduling")
-    lot        = st.text_input("Lot number", key='qc_lot')
-    community  = st.selectbox("Community", list(COMMUNITIES), key='qc_comm')
-    pu_date    = st.date_input("QC Point-Up date", key='qc_pu')
-    paint_date = st.date_input("QC Paint date", key='qc_paint')
-    paint_sub  = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key='qc_sub')
-    stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
+    lot = st.text_input("Lot number", key='qc_lot')
+    community = st.selectbox("Community", list(COMMUNITIES), key='qc_comm')
+    pu = st.date_input("QC Point-Up date", key='qc_pu')
+    pd = st.date_input("QC Paint date", key='qc_paint')
+    ps = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key='qc_sub')
+    sd = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Paint',   'Sub':paint_sub,                      'Date':paint_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Stain',   'Sub':'Dorby',                        'Date':stain_date.strftime('%m/%d/%Y')}
+            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu.strftime('%m/%d/%Y')},
+            {'Task':'QC Paint','Sub':ps,'Date':pd.strftime('%m/%d/%Y')},
+            {'Task':'QC Stain','Sub':'Dorby','Date':sd.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
-        st.json({'lot':lot,'community':community,'qc_tasks':tasks})
 
 # --- Homeowner Scheduling ---
 elif mode == "Homeowner Scheduling":
     st.header("🏠 Homeowner Scheduling")
-    lot        = st.text_input("Lot number", key='ho_lot')
-    community  = st.selectbox("Community", list(COMMUNITIES), key='ho_comm')
-    pu_date    = st.date_input("HO Point-Up date", key='ho_pu')
-    paint_date = st.date_input("HO Paint date", key='ho_paint')
-    paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
+    lot = st.text_input("Lot number", key='ho_lot')
+    community = st.selectbox("Community", list(COMMUNITIES), key='ho_comm')
+    pu = st.date_input("HO Point-Up date", key='ho_pu')
+    pd = st.date_input("HO Paint date", key='ho_paint')
+    ps = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_sub')
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'HO Paint',   'Sub':paint_sub,                    'Date':paint_date.strftime('%m/%d/%Y')}
+            {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu.strftime('%m/%d/%Y')},
+            {'Task':'HO Paint','Sub':ps,'Date':pd.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
-        st.json({'lot':lot,'community':community,'homeowner_tasks':tasks})
 
 # --- Note Taking ---
 elif mode == "Note Taking":
     st.header("📝 Smart Note Taking")
     community = st.selectbox("Community", list(COMMUNITIES), key='note_comm')
-    raw = st.text_area("Enter notes (format: Lot### - your note)", height=150)
+    raw = st.text_area("Enter notes (Lot### - your note)", height=150)
     if st.button("Parse Notes"):
         st.session_state.notes = []
         for line in raw.splitlines():
             if not line.strip(): continue
-            lot_code, note_txt = (line.split('-',1) + [""])[0:2]
+            lot_code, note_txt = (line.split('-',1)+[""])[0:2]
             item = classify_note_locally(lot_code.strip(), community, note_txt.strip())
             st.session_state.notes.append(item)
         save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
 
     if st.session_state.notes:
-        # build dict-of-lists to avoid index column
         cols = ["Lot","Community","Note","Next Action","Sub","Due Date","Email To","Email Draft"]
-        table_data = {c: [n.get(c,"") for n in st.session_state.notes] for c in cols}
+        table_data = {c:[n.get(c,"") for n in st.session_state.notes] for c in cols}
         st.table(table_data)
     else:
         st.info("No notes yet.")
