@@ -2,7 +2,7 @@ import streamlit as st
 import datetime
 import os
 import json
-import openai
+from openai import OpenAI
 
 # --- Streamlit Page Config & Branding ---
 st.set_page_config(
@@ -18,15 +18,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load & display logo if present
+# Sidebar logo
 logo_path = "logo.png"
 if os.path.exists(logo_path):
     st.sidebar.image(logo_path, use_column_width=True)
 else:
     st.sidebar.markdown("## 🏠 Paint & Drywall Automator Demo")
 
-# --- OpenAI Config ---
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# --- OpenAI Client Setup ---
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # --- Data Persistence Utilities ---
 DATA_FILE = "demo_data.json"
@@ -60,14 +60,26 @@ COMMUNITIES = {
         'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
         'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
-    # ... other communities ...
+    'Context': {t: 'America Drywall' for t in TASKS},
+    'Greenway Overlook': {t: 'America Drywall' for t in TASKS},
+    'Camden': {t: 'America Drywall' for t in TASKS},
+    'Olmstead': {
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
+        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
+        'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
+    },
+    'Maxwell': {t: 'America Drywall' for t in TASKS},
 }
 DUR = {'Hang': 1, 'Scrap': 1, 'Sand': 1, 'Tape': 2, 'Bed': 2, 'Skim': 2}
 POINTUP_SUBS = {
     'Galloway': 'Luis A. Lopez',
     'Huntersville Town Center': 'Luis A. Lopez',
     'Claremont': 'Edwin',
-    # ... other mappings ...
+    'Context': 'Edwin',
+    'Greenway Overlook': 'Edwin',
+    'Camden': 'Luis A. Lopez',
+    'Olmstead': 'Luis A. Lopez',
+    'Maxwell': 'Luis A. Lopez'
 }
 PAINT_SUBS = [
     'GP Painting Services', 'Jorge Gomez',
@@ -109,14 +121,15 @@ def classify_note_with_llm(lot, community, text):
         {"role": "system", "content": "You’re an assistant that turns construction walk-through notes into action items."},
         {"role": "user", "content": f"Lot {lot} in {community}: {text}"}
     ]
-    resp = openai.ChatCompletion.create(
+    # Use the new OpenAI client interface
+    resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
         functions=functions,
-        function_call={"name":"classifyNote"}
+        function_call={"name": "classifyNote"}
     )
-    fc = resp["choices"][0]["message"]["function_call"]
-    args = json.loads(fc["arguments"])
+    fc = resp.choices[0].message.function_call
+    args = json.loads(fc.arguments)
     return {
         "Lot": lot,
         "Community": community,
@@ -154,7 +167,6 @@ if mode == "Schedule & Order Mud":
             'Date': [d.strftime('%m/%d/%Y') for *_,d in sched]
         }
         st.table(df)
-        st.success("✅ Schedule generated.")
         if st.button("Order Mud for Scrap Date"):
             scrap_date = sched[1][2].strftime('%m/%d/%Y')
             st.success(f"📧 Mud order email queued for {scrap_date}")
