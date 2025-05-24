@@ -2,15 +2,14 @@ import streamlit as st
 import datetime
 import os
 import json
+import openai
 
-# --- Page Config & Branding ---
+# --- Streamlit Page Config & Branding ---
 st.set_page_config(
     page_title="🏠 Paint & Drywall Automator",
     page_icon="🏠",
     layout="wide"
 )
-
-# Hide Streamlit branding
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -19,14 +18,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Sidebar logo
+# Load & display logo if present
 logo_path = "logo.png"
 if os.path.exists(logo_path):
     st.sidebar.image(logo_path, use_column_width=True)
 else:
     st.sidebar.markdown("## 🏠 Paint & Drywall Automator Demo")
 
-# --- Data Persistence ---
+# --- OpenAI Config ---
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# --- Data Persistence Utilities ---
 DATA_FILE = "demo_data.json"
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -41,20 +43,21 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, default=str, indent=2)
 
+# Initialize or load session state
 data = load_data()
 if 'epo_log' not in st.session_state:
     st.session_state.epo_log = data.get('epo_log', [])
 if 'notes' not in st.session_state:
     st.session_state.notes = data.get('notes', [])
 
-# --- Constants & Business Logic ---
+# --- Business Constants & Logic ---
 TASKS = ['Hang', 'Scrap', 'Tape', 'Bed', 'Skim', 'Sand']
 COMMUNITIES = {
     'Galloway': {t: 'America Drywall' for t in TASKS},
     'Huntersville Town Center': {t: 'America Drywall' for t in TASKS},
     'Claremont': {
-        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers', 
-        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo', 
+        'Hang': 'Ricardo', 'Scrap': 'Scrap Brothers',
+        'Tape': 'Juan Trejo', 'Bed': 'Juan Trejo',
         'Skim': 'Juan Trejo', 'Sand': 'Juan Trejo'
     },
     # ... other communities ...
@@ -67,7 +70,7 @@ POINTUP_SUBS = {
     # ... other mappings ...
 }
 PAINT_SUBS = [
-    'GP Painting Services', 'Jorge Gomez', 
+    'GP Painting Services', 'Jorge Gomez',
     'Christian Painting', 'Carlos Gabriel', 'Juan Ulloa'
 ]
 
@@ -81,40 +84,48 @@ def generate_schedule(comm, start_date):
         added = 0
         while added < days:
             cur += datetime.timedelta(days=1)
-            if skip_wk and cur.weekday() >= 5:
-                continue
-            if skip_sun and cur.weekday() == 6:
-                continue
+            if skip_wk and cur.weekday() >= 5: continue
+            if skip_sun and cur.weekday() == 6: continue
             added += 1
         schedule.append((t, COMMUNITIES[comm].get(t, '—'), cur))
     return schedule
 
-def parse_notes_input(raw, community):
-    parsed = []
-    for line in raw.splitlines():
-        line = line.strip()
-        if not line: continue
-        parts = line.split('-', 1)
-        lot = parts[0].strip()
-        text = parts[1].strip() if len(parts) > 1 else line
-        action = 'Note Logged'
-        follow = ''
-        txt = text.lower()
-        if 'hung' in txt and 'scrap' in txt:
-            action = 'Notify Clean-Out Materials'
-        elif 'drywall' in txt and 'frame' in txt:
-            action = 'Monitor Hang'
-            follow = (datetime.datetime.now() + datetime.timedelta(hours=48)).strftime('%m/%d/%Y %H:%M')
-        elif 'ready for final' in txt:
-            action = 'Notify Schedule Dept for Final Paint'
-        parsed.append({
-            'Community': community,
-            'Lot': lot,
-            'Note': text,
-            'Next Action': action,
-            'Follow-Up': follow
-        })
-    return parsed
+# --- LLM-Powered Note Classification ---
+def classify_note_with_llm(lot, community, text):
+    functions = [{
+        "name": "classifyNote",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "enum": ["EPO","MonitorHang","FinalPaint","Other"]},
+                "dueDate": {"type": "string", "format": "date-time"},
+                "priority": {"type": "string", "enum": ["High","Medium","Low"]},
+                "emailDraft": {"type": "string"}
+            },
+            "required": ["category","emailDraft"]
+        }
+    }]
+    messages = [
+        {"role": "system", "content": "You’re an assistant that turns construction walk-through notes into action items."},
+        {"role": "user", "content": f"Lot {lot} in {community}: {text}"}
+    ]
+    resp = openai.ChatCompletion.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        functions=functions,
+        function_call={"name":"classifyNote"}
+    )
+    fc = resp["choices"][0]["message"]["function_call"]
+    args = json.loads(fc["arguments"])
+    return {
+        "Lot": lot,
+        "Community": community,
+        "Note": text,
+        "Category": args.get("category","Other"),
+        "Due Date": args.get("dueDate",""),
+        "Priority": args.get("priority",""),
+        "Email Draft": args.get("emailDraft","")
+    }
 
 # --- Sidebar Navigation ---
 st.sidebar.markdown("---")
@@ -144,10 +155,9 @@ if mode == "Schedule & Order Mud":
         }
         st.table(df)
         st.success("✅ Schedule generated.")
-
-    if 'sched' in locals() and sched and st.button("Order Mud for Scrap Date"):
-        scrap_date = sched[1][2].strftime('%m/%d/%Y')
-        st.success(f"📧 Mud order email queued for {scrap_date}")
+        if st.button("Order Mud for Scrap Date"):
+            scrap_date = sched[1][2].strftime('%m/%d/%Y')
+            st.success(f"📧 Mud order email queued for {scrap_date}")
 
 # --- EPO & Tracker ---
 elif mode == "EPO & Tracker":
@@ -174,10 +184,10 @@ elif mode == "EPO & Tracker":
             cols[0].write(e['lot']); cols[1].write(e['comm']); cols[2].write(e['sent'])
             status = 'Replied' if e['replied'] else ('Follow-Up Sent' if e['followup'] else 'Pending')
             cols[3].write(status)
-            if not e['replied'] and cols[4].button("Mark Replied", key=f"r{i}"):
+            if cols[4].button("Mark Replied", key=f"r{i}") and not e['replied']:
                 e['replied'] = True
                 save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
-            if not e['followup'] and not e['replied'] and cols[5].button("Send Follow-Up", key=f"f{i}"):
+            if cols[5].button("Send Follow-Up", key=f"f{i}") and not e['followup'] and not e['replied']:
                 e['followup'] = True
                 save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
                 st.info(f"🔔 Follow-up for Lot {e['lot']} queued.")
@@ -195,9 +205,9 @@ elif mode == "QC Scheduling":
     sd = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'Task': 'QC Point-Up', 'Sub': POINTUP_SUBS.get(comm, '—'), 'Date': pu.strftime('%m/%d/%Y')},
+            {'Task': 'QC Point-Up', 'Sub': POINTUP_SUBS.get(comm,'—'), 'Date': pu.strftime('%m/%d/%Y')},
             {'Task': 'QC Paint', 'Sub': ps, 'Date': pd.strftime('%m/%d/%Y')},
-            {'Task': 'QC Stain Touch-Up', 'Sub': 'Dorby', 'Date': sd.strftime('%m/%d/%Y')},
+            {'Task': 'QC Stain Touch-Up', 'Sub': 'Dorby', 'Date': sd.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
         st.json({'lot': lot, 'community': comm, 'qc_tasks': tasks})
@@ -218,20 +228,29 @@ elif mode == "Homeowner Scheduling":
         st.table(tasks)
         st.json({'lot': lot, 'community': comm, 'homeowner_tasks': tasks})
 
-# --- Note Taking ---
+# --- Note Taking with LLM Classification ---
 elif mode == "Note Taking":
-    st.header("📝 Note Taking")
+    st.header("📝 Smart Note Taking")
     comm = st.selectbox("Community Context", list(COMMUNITIES.keys()), key='note_comm')
     raw = st.text_area("Enter notes (format: Lot### - your note)", height=150)
-    if st.button("Parse Notes"):
-        parsed = parse_notes_input(raw, comm)
-        st.session_state.notes = parsed
+    photos = st.file_uploader("Attach photos (optional)", accept_multiple_files=True)
+    if st.button("Classify & Parse Notes"):
+        st.session_state.notes = []
+        for line in raw.splitlines():
+            if not line.strip(): continue
+            parts = line.split('-', 1)
+            lot_code = parts[0].strip()
+            note_txt = parts[1].strip() if len(parts)>1 else parts[0].strip()
+            item = classify_note_with_llm(lot_code, comm, note_txt)
+            st.session_state.notes.append(item)
         save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
+
     if st.session_state.notes:
+        st.subheader("Action Items")
         st.table(st.session_state.notes)
     else:
         st.info("No notes parsed yet.")
 
 # --- Sidebar Footer ---
 st.sidebar.markdown("---")
-st.sidebar.write("This is a **demo only**—no actual emails go out.")
+st.sidebar.write("This is a **demo only** — no actual emails or reminders are sent.")
