@@ -1,6 +1,5 @@
 import streamlit as st
 import datetime
-import json
 import re
 
 # --- Business logic from your specs ---
@@ -51,7 +50,7 @@ if 'epo_log' not in st.session_state:
 if 'notes' not in st.session_state:
     st.session_state.notes = []
 
-# App
+# App layout
 st.title("🏠 Paint & Drywall Automator Demo")
 mode = st.sidebar.selectbox("Choose demo mode", [
     "Schedule & Order Mud",  
@@ -163,49 +162,4 @@ elif mode == "Homeowner Scheduling":
     paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key='ho_paint_sub')
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {'task': 'HO Point-Up', 'sub': POINTUP_SUBS.get(comm,'—'), 'date': pu_date.strftime('%m/%d/%Y')},
-            {'task': 'HO Paint',    'sub': paint_sub,                 'date': paint_date.strftime('%m/%d/%Y')}
-        ]
-        st.table(tasks)
-        st.json({'lot': lot, 'community': comm, 'homeowner_tasks': tasks})
-
-# --- Note Taking ---
-elif mode == "Note Taking":
-    st.header("📝 Note Taking")
-    st.write("Paste your walkthrough notes below:")
-    notes_input = st.text_area("Enter notes (one per line)")
-    if st.button("Parse Notes"):
-        st.session_state.notes = []
-        lines = [l.strip() for l in notes_input.splitlines() if l.strip()]
-        for line in lines:
-            # Very basic parsing stub
-            lot_match = re.search(r"Lot\s*(\w+)", line, re.IGNORECASE)
-            lot_code = lot_match.group(1) if lot_match else 'Unknown'
-            # Look for keywords
-            status = 'Unknown'
-            next_action = 'Monitor'
-            date = ''
-            if 'frame' in line.lower():
-                status = 'Framing'
-                next_action = 'Schedule Hang'
-            if 'first paint' in line.lower():
-                status = 'First Paint Done'
-                next_action = 'Schedule Final Paint'
-            date_match = re.search(r"(\d{1,2}/\d{1,2}/\d{2,4})", line)
-            if date_match:
-                date = date_match.group(1)
-            st.session_state.notes.append({
-                'note': line,
-                'lot': lot_code,
-                'status': status,
-                'next_action': next_action,
-                'date': date
-            })
-    if st.session_state.notes:
-        st.subheader("Parsed Notes")
-        st.table(st.session_state.notes)
-    else:
-        st.info("No notes parsed yet.")
-
-st.sidebar.markdown("---")
-st.sidebar.write("This is a **demo only**—no actual emails go out.")
+            {'task': 'HO Point-Up', 'sub': POINTUP_SUBS.get
