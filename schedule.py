@@ -44,33 +44,30 @@ PAINT_SUBS = [
     'Juan Ulloa'
 ]
 
-# Session state initialization
+# Session state initialization for EPO tracker
 if 'epo_log' not in st.session_state:
     st.session_state.epo_log = []
-if 'paint_assignments' not in st.session_state:
-    st.session_state.paint_assignments = {}
 
+# App Layout
 st.title("🏠 Paint & Drywall Automator Demo")
 mode = st.sidebar.selectbox("Choose demo mode", [
-    "Schedule",
-    "Order Mud & EPO",
+    "Schedule & Order Mud",
+    "EPO & Tracker",
     "QC Scheduling",
-    "Homeowner Scheduling",
-    "Paint Assignment"
+    "Homeowner Scheduling"
 ])
 
-# --- Schedule Tab ---
-if mode == "Schedule":
-    st.header("📆 Schedule Generator")
+# --- Schedule & Order Mud ---
+if mode == "Schedule & Order Mud":
+    st.header("📆 Schedule Generator & Mud Order")
     lot   = st.text_input("Lot number")
     comm  = st.selectbox("Community", list(COMMUNITIES.keys()))
-    start = st.date_input("Start date")
+    start = st.date_input("Start date (MM/DD/YYYY)")
     if st.button("Generate Schedule"):
-        sched = []
+        schedule = []
         cur = start
         for t in TASKS:
             days = DUR[t]
-            # skip Sundays for all except Scrap, skip weekends for Scrap
             skip_sun = (t != 'Scrap')
             skip_wk = (t == 'Scrap')
             d = cur
@@ -82,24 +79,23 @@ if mode == "Schedule":
                 if skip_sun and d.weekday() == 6:
                     continue
                 added += 1
-            sched.append((t, COMMUNITIES[comm].get(t, '—'), d.strftime('%m/%d/%Y')))
+            schedule.append((t, COMMUNITIES[comm].get(t,'—'), d.strftime('%m/%d/%Y')))
             cur = d
         st.table({
-            "Task": [t for t,_,_ in sched],
-            "Subcontractor": [s for _,s,_ in sched],
-            "Date": [d for *_,d in sched]
+            "Task": [t for t,_,_ in schedule],
+            "Subcontractor": [s for _,s,_ in schedule],
+            "Date": [d for *_,d in schedule]
         })
-    st.subheader("🚚 Order Mud")
     if st.button("Order Mud for Scrap Date"):
-        if sched:
-            scrap_date = sched[1][2]
+        if schedule:
+            scrap_date = schedule[1][2]
             st.success(f"📧 Mud order email queued for {scrap_date}")
         else:
-            st.info("Generate schedule first to order mud.")
+            st.info("Please generate schedule first.")
 
-# --- EPO Tab ---
-elif mode == "Order Mud & EPO":
-    st.header("✉️ EPO Automation")
+# --- EPO & Tracker ---
+elif mode == "EPO & Tracker":
+    st.header("✉️ EPO Automation & Tracker")
     with st.form("epo_form"):
         col1, col2 = st.columns(2)
         lot      = col1.text_input("Lot")
@@ -108,18 +104,17 @@ elif mode == "Order Mud & EPO":
         amount   = col2.text_input("Amount")
         photos   = st.file_uploader("Attach photos", accept_multiple_files=True)
         sent     = st.form_submit_button("Send EPO")
-        if sent:
-            now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-            st.success(f"EPO for Lot {lot} {comm} recorded at {now}")
-            st.session_state.epo_log.append({
-                "lot": lot, "comm": comm, "to": email_to,
-                "amt": amount, "sent": now,
-                "replied": False, "followup": False
-            })
+    if sent:
+        now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
+        st.success(f"EPO for Lot {lot} {comm} recorded at {now}")
+        st.session_state.epo_log.append({
+            "lot": lot, "comm": comm, "to": email_to,
+            "amt": amount, "sent": now,
+            "replied": False, "followup": False
+        })
     st.subheader("📋 EPO Tracker")
-    log = st.session_state.epo_log
-    if log:
-        for idx, entry in enumerate(log):
+    if st.session_state.epo_log:
+        for idx, entry in enumerate(st.session_state.epo_log):
             cols = st.columns(6)
             cols[0].write(entry['lot'])
             cols[1].write(entry['comm'])
@@ -137,56 +132,41 @@ elif mode == "Order Mud & EPO":
     else:
         st.write("No EPOs sent yet.")
 
-# --- QC Scheduling Tab ---
+# --- QC Scheduling ---
 elif mode == "QC Scheduling":
     st.header("🔍 QC Scheduling")
-    lot   = st.text_input("Lot number", key="qc_lot")
-    comm  = st.selectbox("Community", list(COMMUNITIES.keys()), key="qc_comm")
-    pu    = st.date_input("QC Point-Up date", key="qc_pu")
-    paint_sub = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key="qc_paint_sub")
-    stain  = st.date_input("QC Stain Touch-Up date", key="qc_stain")
+    lot        = st.text_input("Lot number", key="qc_lot")
+    comm       = st.selectbox("Community", list(COMMUNITIES.keys()), key="qc_comm")
+    pu_date    = st.date_input("QC Point-Up date", key="qc_pu")
+    paint_date = st.date_input("QC Paint date", key="qc_paint_date")
+    paint_sub  = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key="qc_paint_sub")
+    stain_date = st.date_input("QC Stain Touch-Up date", key="qc_stain")
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {"task": "QC Point-Up",      "sub": POINTUP_SUBS.get(comm, "—"),   "date": pu.strftime('%m/%d/%Y')},
-            {"task": "QC Paint",         "sub": paint_sub,                      "date": pu.strftime('%m/%d/%Y')},
-            {"task": "QC Stain Touch-Up","sub": 'Dorby',                       "date": stain.strftime('%m/%d/%Y')},
+            {"task": "QC Point-Up",       "sub": POINTUP_SUBS.get(comm,"—"), "date": pu_date.strftime('%m/%d/%Y')},
+            {"task": "QC Paint",          "sub": paint_sub,                   "date": paint_date.strftime('%m/%d/%Y')},
+            {"task": "QC Stain Touch-Up", "sub": 'Dorby',                      "date": stain_date.strftime('%m/%d/%Y')},
         ]
         st.success("QC tasks scheduled:")
         st.table(tasks)
         st.json({"lot": lot, "community": comm, "qc_tasks": tasks})
 
-# --- Homeowner Scheduling Tab ---
+# --- Homeowner Scheduling ---
 elif mode == "Homeowner Scheduling":
     st.header("🏠 Homeowner Scheduling")
-    lot   = st.text_input("Lot number", key="ho_lot")
-    comm  = st.selectbox("Community", list(COMMUNITIES.keys()), key="ho_comm")
-    pu    = st.date_input("HO Point-Up date", key="ho_pu")
-    paint_sub = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key="ho_paint_sub")
+    lot        = st.text_input("Lot number", key="ho_lot")
+    comm       = st.selectbox("Community", list(COMMUNITIES.keys()), key="ho_comm")
+    pu_date    = st.date_input("HO Point-Up date", key="ho_pu")
+    paint_date = st.date_input("HO Paint date", key="ho_paint_date")
+    paint_sub  = st.selectbox("HO Paint subcontractor", PAINT_SUBS, key="ho_paint_sub")
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
-            {"task": "HO Point-Up", "sub": POINTUP_SUBS.get(comm, "—"), "date": pu.strftime('%m/%d/%Y')},
-            {"task": "HO Paint",    "sub": paint_sub,                 "date": pu.strftime('%m/%d/%Y')},
+            {"task": "HO Point-Up", "sub": POINTUP_SUBS.get(comm,"—"), "date": pu_date.strftime('%m/%d/%Y')},
+            {"task": "HO Paint",    "sub": paint_sub,                 "date": paint_date.strftime('%m/%d/%Y')},
         ]
         st.success("Homeowner tasks scheduled:")
         st.table(tasks)
         st.json({"lot": lot, "community": comm, "homeowner_tasks": tasks})
-
-# --- Paint Assignment Tab ---
-elif mode == "Paint Assignment":
-    st.header("🎨 Paint Subcontractor Assignment")
-    lot       = st.text_input("Lot number", key="pa_lot")
-    comm      = st.selectbox("Community", list(COMMUNITIES.keys()), key="pa_comm")
-    paint_sub = st.selectbox("Assign Paint subcontractor", PAINT_SUBS, key="pa_assign")
-    if st.button("Assign Paint Subcontractor"):
-        st.session_state.paint_assignments[f"{lot}_{comm}"] = paint_sub
-        st.success(f"Assigned '{paint_sub}' for Lot {lot}, {comm}")
-    if st.session_state.paint_assignments:
-        st.subheader("Current Paint Assignments")
-        df = []
-        for k, v in st.session_state.paint_assignments.items():
-            l, c = k.split('_', 1)
-            df.append({"lot": l, "community": c, "paint_sub": v})
-        st.table(df)
 
 st.sidebar.markdown("---")
 st.sidebar.write("This is a **demo only**—no actual emails go out.")
