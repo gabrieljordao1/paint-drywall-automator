@@ -91,7 +91,6 @@ def classify_note_locally(lot, community, text):
     due_date = ''
     email_to = ''
     email_draft = ''
-
     if 'clean-out' in txt or 'clean out' in txt or 'schedule clean' in txt:
         action = 'Schedule Clean-Out Materials'
         sub = 'Scrap Truck'
@@ -110,7 +109,6 @@ def classify_note_locally(lot, community, text):
         )
     elif 'epo' in txt or 'ask for epo' in txt:
         action = 'Request EPO'
-
     return {
         "Lot": lot,
         "Community": community,
@@ -163,10 +161,12 @@ elif mode == "EPO & Tracker":
         send      = st.form_submit_button("Send EPO")
     if send:
         now = datetime.datetime.now().strftime('%m/%d/%Y %H:%M')
-        entry = {'lot':lot,'comm':community,'to':email_to,
-                 'amt':amount,'sent':now,'replied':False,'followup':False}
+        entry = {
+            'lot': lot, 'comm': community, 'to': email_to,
+            'amt': amount, 'sent': now, 'replied': False, 'followup': False
+        }
         st.session_state.epo_log.append(entry)
-        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+        save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
         st.success(f"EPO for Lot {lot} recorded at {now}")
     st.subheader("EPO Tracker")
     if st.session_state.epo_log:
@@ -177,10 +177,10 @@ elif mode == "EPO & Tracker":
             cols[3].write(status)
             if not e['replied'] and cols[4].button("Mark Replied", key=f"r{i}"):
                 e['replied'] = True
-                save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+                save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
             if not e['followup'] and not e['replied'] and cols[5].button("Send Follow-Up", key=f"f{i}"):
                 e['followup'] = True
-                save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+                save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
                 st.info(f"Follow-up queued for Lot {e['lot']}")
     else:
         st.info("No EPOs yet.")
@@ -193,7 +193,7 @@ elif mode == "QC Scheduling":
     pu_date    = st.date_input("QC Point-Up date", key='qc_pu')
     paint_date = st.date_input("QC Paint date", key='qc_paint')
     paint_sub  = st.selectbox("QC Paint subcontractor", PAINT_SUBS, key='qc_sub')
-    stain_date = st.date_input("QC Stain date", key='qc_stain')
+    stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
             {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
@@ -231,13 +231,15 @@ elif mode == "Note Taking":
             lot_code, note_txt = (line.split('-',1)+[""])[0:2]
             item = classify_note_locally(lot_code.strip(), community, note_txt.strip())
             st.session_state.notes.append(item)
-        save_data({'epo_log':st.session_state.epo_log,'notes':st.session_state.notes})
+        save_data({'epo_log':st.session_state.epo_log, 'notes':st.session_state.notes})
     if st.session_state.notes:
         df = pd.DataFrame(st.session_state.notes)
-        st.table(df.style.hide_index())
+        df.reset_index(drop=True, inplace=True)
+        st.table(df)
     else:
         st.info("No notes yet.")
 
 # --- Footer ---
 st.markdown("---")
 st.write("Demo only—no real emails or reminders.")
+
