@@ -86,29 +86,48 @@ def generate_schedule(community, start_date):
 
 def classify_note_locally(lot, community, text):
     txt = text.lower()
-    # Determine category
-    if 'epo' in txt or 'ask for epo' in txt:
-        category = 'EPO'
-    elif 'drywall' in txt and 'frame' in txt:
-        category = 'MonitorHang'
-    elif any(k in txt for k in ['flooring','shoe molding','electrical']):
-        category = 'FinalPaint'
-    else:
-        category = 'Other'
-    # Due date heuristic
+    # defaults
+    action = 'Note Logged'
+    sub = ''
     due_date = ''
-    if category == 'EPO':
-        due_date = (datetime.datetime.now() + datetime.timedelta(hours=48)
-                   ).strftime('%m/%d/%Y %H:%M')
-    # Draft email template
-    email_draft = f"Please handle *{category}* for Lot {lot} in {community}."
+    email_to = ''
+    email_draft = ''
+
+    # 1) Clean-out materials scheduling
+    if 'clean-out' in txt or 'clean out' in txt or 'schedule clean' in txt:
+        action = 'Schedule Clean-Out Materials'
+        sub = 'Scrap Truck'
+        due_date = (datetime.datetime.now() + datetime.timedelta(days=1))\
+                   .strftime('%m/%d/%Y')
+    # 2) Framing stage + drywall → monitor hang
+    elif 'drywall' in txt and 'frame' in txt:
+        action = 'Monitor Hang'
+        sub = ''
+    # 3) Final point-up / paint
+    elif ('ready for final' in txt or 'final paint' in txt or
+          'final point up' in txt or 'final point-up' in txt):
+        action = 'Notify Final Point-Up/Paint'
+        # placeholder email to be replaced with your office address
+        email_to = 'office@scheduling.example.com'
+        email_draft = (
+            f"Hi team,\n\n"
+            f"Just checking if Lot {lot} in {community} is ready for final point-up or paint soon. "
+            f"Is it on our radar?\n\nThanks."
+        )
+    # 4) EPO requests
+    elif 'epo' in txt or 'ask for epo' in txt:
+        action = 'Request EPO'
+        sub = ''
+    # else leave defaults
+
     return {
         "Lot": lot,
         "Community": community,
         "Note": text,
-        "Category": category,
+        "Next Action": action,
+        "Sub": sub,
         "Due Date": due_date,
-        "Priority": "",
+        "Email To": email_to,
         "Email Draft": email_draft
     }
 
@@ -192,9 +211,9 @@ elif mode == "QC Scheduling":
     stain_date = st.date_input("QC Stain Touch-Up date", key='qc_stain')
     if st.button("Schedule QC Tasks"):
         tasks = [
-            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Paint',   'Sub':paint_sub,                     'Date':paint_date.strftime('%m/%d/%Y')},
-            {'Task':'QC Stain',   'Sub':'Dorby',                       'Date':stain_date.strftime('%m/%d/%Y')}
+            {'Task':'QC Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')}, 
+            {'Task':'QC Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')}, 
+            {'Task':'QC Stain','Sub':'Dorby','Date':stain_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
         st.json({'lot':lot,'comm':community,'qc_tasks':tasks})
@@ -211,7 +230,7 @@ elif mode == "Homeowner Scheduling":
     if st.button("Schedule Homeowner Tasks"):
         tasks = [
             {'Task':'HO Point-Up','Sub':POINTUP_SUBS.get(community,'—'),'Date':pu_date.strftime('%m/%d/%Y')},
-            {'Task':'HO Paint',   'Sub':paint_sub,                      'Date':paint_date.strftime('%m/%d/%Y')}
+            {'Task':'HO Paint','Sub':paint_sub,'Date':paint_date.strftime('%m/%d/%Y')}
         ]
         st.table(tasks)
         st.json({'lot':lot,'comm':community,'home_tasks':tasks})
@@ -225,13 +244,15 @@ elif mode == "Note Taking":
     if st.button("Classify & Parse"):
         st.session_state.notes = []
         for line in raw.splitlines():
-            if not line.strip(): continue
+            if not line.strip(): 
+                continue
             parts = line.split('-', 1)
             lot_code = parts[0].strip()
             note_txt = parts[1].strip() if len(parts)>1 else ""
             item = classify_note_locally(lot_code, community, note_txt)
             st.session_state.notes.append(item)
         save_data({'epo_log': st.session_state.epo_log, 'notes': st.session_state.notes})
+
     if st.session_state.notes:
         st.subheader("Action Items")
         st.table(st.session_state.notes)
